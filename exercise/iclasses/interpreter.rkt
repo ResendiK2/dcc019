@@ -1,8 +1,8 @@
 #lang racket
 
-(require "../../util/env.rkt"
-         "../../util/memory.rkt"
-         "ast.rkt")
+(require dcc019/util/env
+         dcc019/util/memory
+         dcc019/exercise/iclasses/ast)
 
 (provide value-of-program)
 
