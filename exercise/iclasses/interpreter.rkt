@@ -28,8 +28,7 @@
 (define (result-of stmt Δ)
   (match stmt
     [(ast:assign (ast:var x) e) (display "assignment unimplemented")]
-    [(ast:print e) (display (value-of e Δ))
-                   #;(display "print unimplemented")]
+    [(ast:print e) (display (value-of e Δ))]
     [(ast:return e) (value-of e Δ)]
     [(ast:block stmts) (display "block unimplemented")]
     [(ast:if-stmt e s1 s2) (display "if statment unimplemented")]
