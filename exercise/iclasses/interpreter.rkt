@@ -1,3 +1,6 @@
+;;; Breno Lino Prado - 202265013AC
+;;; Gabriel Arantes Resende Pereira - 202065126A
+
 #lang racket
 
 (require dcc019/util/env
@@ -25,7 +28,10 @@
     [(ast:zero? e) (zero? (value-of e Δ))]
     [(ast:not e) (not (value-of e Δ))]
     [(ast:if e1 e2 e3) (if (value-of e1 Δ) (value-of e2 Δ) (value-of e3 Δ))]
-    [(ast:let (ast:var x) e1 e2) (value-of e2 (extend-env x (value-of e1 Δ) Δ))]
+    [(ast:let (ast:var x) e1 e2)
+     (let ([val (value-of e1 Δ)]) 
+       (let ([new-env (extend-env x (newref val) Δ)])
+         (value-of e2 new-env)))]
     [(ast:var v) (deref (apply-env Δ v))]
     [(ast:send e (ast:var mth) args)
      (let* ([args-with-value (map-value-of args Δ)]
@@ -49,7 +55,8 @@
 ;; result-of :: Stmt -> Env -> State -> State
 (define (result-of stmt Δ)
   (match stmt
-    [(ast:assign (ast:var x) e) (begin (setref! (apply-env Δ x) (value-of e Δ)) 98)]
+    [(ast:assign (ast:var x) e)
+     (setref! (apply-env Δ x) (value-of e Δ))]
     [(ast:print e)
      (display (value-of e Δ))
      (newline)]
