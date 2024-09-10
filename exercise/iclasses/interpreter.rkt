@@ -15,11 +15,13 @@
 
 (define class-env '())
 
-;; Função auxiliar para mapear valor das expressões
+;; --- Cálculo de Valores ---
+
+;; Mapeia valores das expressões
 (define (map-value-of exps Δ)
   (map (lambda (exp) (value-of exp Δ)) exps))
 
-;; value-of :: Exp -> ExpVal
+;; Avalia a expressão
 (define (value-of exp Δ)
   (match exp
     [(ast:int v) v]
@@ -50,9 +52,11 @@
                    (object c fields))])
        (apply-method (find-method c "initialize") obj args-with-value)
        obj)]
-    [e (raise-user-error "unimplemented-construction: " e)]))
+    [e (raise-user-error "Não implementado: " e)]))
 
-;; result-of :: Stmt -> Env -> State -> State
+;; --- Execução de Declarações ---
+
+;; Executa a declaração
 (define (result-of stmt Δ)
   (match stmt
     [(ast:assign (ast:var x) e)
@@ -75,46 +79,48 @@
      (let* ([args-with-value (map-value-of args Δ)]
             [obj (apply-env Δ "self")])
        (apply-method (find-method (apply-env Δ "super") c) obj args-with-value))]
-    [e (raise-user-error "unimplemented-construction: " e)]))
+    [e (raise-user-error "Não implementado: " e)]))
 
+;; --- Gerenciamento de Ambiente e Classes ---
+
+;; Adiciona a classe ao ambiente
 (define (add-class class-name class-list)
   (unless (class-exists? class-name class-list)
     (set! class-env (cons (cons class-name class-list) class-env))))
 
+;; Mescla declarações de métodos com métodos da superclasse
 (define (merge-method m-decls super-name fields)
   (append
    (map (lambda (m-decl) (create-method super-name fields m-decl)) m-decls)
    (class-method-env (find-class super-name))))
 
+;; Cria a estrutura de método
 (define (create-method super-name fields m-decl)
   (list (ast:var-name (ast:method-name m-decl))
         (method (map ast:var-name (ast:method-params m-decl))
                 (ast:method-body m-decl)
                 super-name fields)))
 
+;; Encontra a classe pelo nome
 (define (find-class class-name)
   (let ([class-pair (assoc class-name class-env)])
     (if class-pair
         (cdr class-pair)
         (raise-user-error "Classe não encontrada: " class-name))))
 
-(define (get-field-names fields)
-  (map (lambda (field)
-         (if (string? field)
-             field
-             (ast:var-name field)))
-       fields))
-
+;; Verifica se a classe existe
 (define (class-exists? class-name class-list)
   (let ([existing-class (find-class-exists class-name)])
     (and existing-class
          (equal? (class-field-names existing-class) (class-field-names class-list))
          (equal? (class-method-env existing-class) (class-method-env class-list)))))
 
+;; Encontra a classe existente
 (define (find-class-exists class-name)
   (let ([maybe-pair (assoc class-name class-env)])
     (and maybe-pair (cdr maybe-pair))))
 
+;; Adiciona nomes de campos para incluir campos da superclasse
 (define (append-field-names super-fields self-fields)
   (foldr (lambda (field acc)
            (if (member field acc)
@@ -123,6 +129,9 @@
          self-fields
          super-fields))
 
+;; --- Manipulação de Métodos ---
+
+;; Aplica um método a um objeto com argumentos dados
 (define (apply-method method self args)
   (let* ([args-with-refs (map newref args)]
          [extended-env (extend-env "self" self
@@ -131,11 +140,13 @@
     (result-of (method-body method)
                (bind-vars (method-vars method) args-with-refs method-env))))
 
+;; Associa variáveis aos seus valores no ambiente
 (define (bind-vars vars values env)
   (for ([var vars] [val values])
     (set! env (extend-env var val env)))
   env)
 
+;; Encontra um método pelo nome da classe e do método
 (define (find-method class-name method-name)
   (let ([m-env (class-method-env (find-class class-name))])
     (let ([maybe-pair (assoc method-name m-env)])
@@ -143,7 +154,9 @@
           (cadr maybe-pair)
           (raise-user-error "Método não encontrado: " method-name)))))
 
-;; value-of-program :: Prog -> State
+;; --- Avaliação do Programa ---
+
+;; Avalia o programa
 (define (value-of-program prog)
   (empty-store)
   (match prog
